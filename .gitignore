@@ -127,3 +127,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+doc_vectorizer/*
+word_vectorizer/*
+vncore/*

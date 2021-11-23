@@ -1,0 +1,1 @@
+from .entity_class import Topic, Opinion
