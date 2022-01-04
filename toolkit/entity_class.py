@@ -1,4 +1,10 @@
-from typing import List
+
+from typing import *
+
+from dataclasses import dataclass, asdict, field
+
+
+
 
 class Topic():
     def __init__(self, keywords_list: List = [],):

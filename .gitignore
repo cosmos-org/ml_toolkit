@@ -131,3 +131,4 @@ dmypy.json
 doc_vectorizer/*
 word_vectorizer/*
 vncore/*
+model_sentiment_bert/

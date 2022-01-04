@@ -24,23 +24,28 @@ class Keyword_Topic_Opinion_Relation_Extractor(Topic_Opinion_Relation_Extractor)
         self.doc_vectorizer = doc_vectorizer
     @classmethod
     def default_init(cls):
-        doc_vectorizer_path = '../doc_vectorizer/vn_tfidf_builder.pkl'
-        word_vectorizer_path = '../word_vectorizer/w100.pkl'
-        segmentor_path = '../vncore/VnCoreNLP-1.1.1.jar'
+        doc_vectorizer_path = 'doc_vectorizer/vn_tfidf_builder.pkl'
+        word_vectorizer_path = 'word_vectorizer/w100.pkl'
+        segmentor_path = 'vncore/VnCoreNLP-1.1.1.jar'
         segmentor = VnCoreNLP(segmentor_path, annotators="wseg", max_heap_size='-Xmx2g')
         with open(word_vectorizer_path,'rb') as f:
             word_vectorizer = pickle.load(f)
         with open(doc_vectorizer_path,'rb') as f:
             doc_vectorizer = pickle.load(f)
         return cls(segmentor,word_vectorizer,doc_vectorizer)
-
+    def extrac_score(self,keywords,content):
+        score = 0
+        for k in keywords:
+            if k.lower() in content.lower():
+                score += 0.1
+        return score
     def relation_extract(self,topic:List, opinion:dict = {})->float:
         topic = Topic(topic)
         opinion = Opinion.from_dict(opinion)
         content = opinion.content
         keywords = topic.keywords_list
-        numkey = 20
-        return self.calculate_score(content,keywords,numkey)
+        numkey = 5
+        return {'score': self.calculate_score(content,keywords,numkey)+ self.extrac_score(keywords,content)}
     def chunk2chunk_similarity(self,ls1:list,ls2:list,weight1:list,weight2:list):
 
         #['','',....] -> [[], [], ...] : 
@@ -58,8 +63,8 @@ class Keyword_Topic_Opinion_Relation_Extractor(Topic_Opinion_Relation_Extractor)
                     pass
             
             return vectors, w
-        print(ls1)
-        print(ls2)
+        # print(ls1)
+        # print(ls2)
         
         
         v1s, weight1 = get_word_vectors(ls1,weight1)
@@ -84,7 +89,8 @@ class Keyword_Topic_Opinion_Relation_Extractor(Topic_Opinion_Relation_Extractor)
                 s[:,ind] = np.multiply(np.array(w),s[:,ind])
         sim = np.sum(cos_matrix)
         divide = np.sum(s)
-
+        if (float(divide) == 0):
+            return 0
         return float(sim/divide)
 
     
@@ -93,7 +99,7 @@ class Keyword_Topic_Opinion_Relation_Extractor(Topic_Opinion_Relation_Extractor)
         if top > len(doc.split(' ')):
             print('Numkey > len(doc)')
             top  = len(doc.split(' '))
-        
+       
         def inds_to_words(vocab,inds:list):
             res = []
             for i in inds:    
@@ -107,16 +113,22 @@ class Keyword_Topic_Opinion_Relation_Extractor(Topic_Opinion_Relation_Extractor)
         top_tfidfs = np.sort(cvector[0])[-top:][::-1]
         top_tfidfs = top_tfidfs.tolist()
         
-        top_words = inds_to_words(self.doc_vectorizer._vocabulary,top_index)
+        top_words = inds_to_words(self.doc_vectorizer.vocabulary_,top_index)
 
-    
+        l1 = []
+        l2 = []
+        for i in range(len(top_tfidfs)):
+            if top_tfidfs[i] > 0.0:
+                l1.append(top_words[i])
+                l2.append(top_tfidfs[i])
 
-        return top_words,top_tfidfs
+        return l1,l2
     def keywords2doc_sim(self,keywords:list,doc:str,num_keyword2):
 
         top_words_doc,topscore2 = self.extract_keyword_from_document_and_weight(doc,num_keyword2)
 
         topscore1 = np.ones([len(keywords)]).tolist()
+        print(keywords,top_words_doc,topscore1,topscore2)
         return self.chunk2chunk_similarity(keywords,top_words_doc,topscore1,topscore2)
 
     def segment(self,text:str)->str:
@@ -132,10 +144,11 @@ class Keyword_Topic_Opinion_Relation_Extractor(Topic_Opinion_Relation_Extractor)
 
     def calculate_score(self,text,keywords,numkey2)->float:
         text = self.segment(text)
+        print(text)
         segmented_keywords = []
         for k in keywords:
             segmented_keywords.extend(self.segment(k).split(' '))
-        print(keywords)
+        # print(keywords)
         overall_sim = self.keywords2doc_sim(segmented_keywords,text,numkey2)
         return overall_sim
     
