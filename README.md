@@ -27,7 +27,7 @@ print(sentiment_result)
 
 Result:
 ```
-{'label': 'POS', 'score': 0.9976200461387634} #label can be "POS", "NEU" or "NEG"
 {'score': 0.4379715992914262}
+{'label': 'POS', 'score': 0.9976200461387634} #label can be "POS", "NEU" or "NEG"
 ```
 
